@@ -16,7 +16,7 @@ namespace midtermCrudExamSanJuan
         {
             InitializeComponent();
             mySqlConnection = new MySqlConnection(mysqlcon);
-            database_DatagridView.CellClick += new DataGridViewCellEventHandler(database_DatagridView_CellClick); // Subscribe to CellClick event
+            database_DatagridView.CellClick += new DataGridViewCellEventHandler(database_DatagridView_CellClick); 
             addEmployee_updateBtn.Enabled = false; 
             addEmployee_updateBtn.BackColor = System.Drawing.Color.Gray;
         }
