@@ -130,5 +130,7 @@ namespace midtermCrudExamSanJuan
             registerForm.Show();
             this.Hide();
         }
+
+        //made by yours truly, Xavier Gael San Juan nyarbs nyarbs
     }
 }
