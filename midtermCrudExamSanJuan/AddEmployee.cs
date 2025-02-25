@@ -16,8 +16,8 @@ namespace midtermCrudExamSanJuan
         {
             InitializeComponent();
             mySqlConnection = new MySqlConnection(mysqlcon);
-            database_DatagridView.CellClick += new DataGridViewCellEventHandler(database_DatagridView_CellClick); 
-            addEmployee_updateBtn.Enabled = false; 
+            database_DatagridView.CellClick += new DataGridViewCellEventHandler(database_DatagridView_CellClick);
+            addEmployee_updateBtn.Enabled = false;
             addEmployee_updateBtn.BackColor = System.Drawing.Color.Gray;
         }
 
@@ -54,7 +54,16 @@ namespace midtermCrudExamSanJuan
             openFileDialog.Filter = "Image Files (*.png;*.jpg;*.jpeg;*.gif;*.bmp)|*.png;*.jpg;*.jpeg;*.gif;*.bmp";
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                addEmployee_pictureBox.Image = Image.FromFile(openFileDialog.FileName);
+                try
+                {
+                    // Load and validate the image
+                    Image image = Image.FromFile(openFileDialog.FileName);
+                    addEmployee_pictureBox.Image = image;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to load image: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -88,19 +97,45 @@ namespace midtermCrudExamSanJuan
                 byte[] imageBytes = null;
                 if (addEmployee_pictureBox.Image != null)
                 {
-                    using (MemoryStream ms = new MemoryStream())
+                    try
                     {
-                        addEmployee_pictureBox.Image.Save(ms, addEmployee_pictureBox.Image.RawFormat);
-                        imageBytes = ms.ToArray();
+                        using (MemoryStream ms = new MemoryStream())
+                        {
+                            // Use a specific format (e.g., PNG) to avoid GDI+ issues with certain formats
+                            addEmployee_pictureBox.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                            imageBytes = ms.ToArray();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to process image: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
                     }
                 }
                 else
                 {
-                    Image defaultImage = Image.FromFile(@"C:\Users\xgael\source\repos\midtermCrudExamSanJuan\midtermCrudExamSanJuan\Resources\defaultprofile\default.png");
-                    using (MemoryStream ms = new MemoryStream())
+                    try
                     {
-                        defaultImage.Save(ms, defaultImage.RawFormat);
-                        imageBytes = ms.ToArray();
+                        string defaultImagePath = @"C:\Users\xgael\source\repos\midtermCrudExamSanJuan\midtermCrudExamSanJuan\Resources\defaultprofile\default.png";
+                        if (File.Exists(defaultImagePath))
+                        {
+                            Image defaultImage = Image.FromFile(defaultImagePath);
+                            using (MemoryStream ms = new MemoryStream())
+                            {
+                                defaultImage.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                imageBytes = ms.ToArray();
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show("Default image file not found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to load default image: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
                     }
                 }
 
@@ -114,14 +149,13 @@ namespace midtermCrudExamSanJuan
                 cmd.Parameters.AddWithValue("@email", email_textbox.Text);
                 cmd.Parameters.AddWithValue("@position", position_txtbox.Text);
                 cmd.Parameters.AddWithValue("@status", status_combobox.Text);
-                cmd.Parameters.AddWithValue("@image", imageBytes);
+                cmd.Parameters.AddWithValue("@image", imageBytes ?? (object)DBNull.Value);
 
                 int rowsAffected = cmd.ExecuteNonQuery();
 
                 if (rowsAffected > 0)
                 {
                     MessageBox.Show("Employee added successfully!");
-  
                     PopulateDataGridView();
                 }
                 else
@@ -165,7 +199,6 @@ namespace midtermCrudExamSanJuan
                 }
                 else
                 {
-                    
                     firstName_txtbox.Text = row.Cells["First_Name"].Value.ToString();
                     lastname_txtbox.Text = row.Cells["Last_Name"].Value.ToString();
                     gender_combobox.Text = row.Cells["Gender"].Value.ToString();
@@ -174,41 +207,40 @@ namespace midtermCrudExamSanJuan
                     status_combobox.Text = row.Cells["Status"].Value.ToString();
                     employeeID_txtbox.Text = row.Cells["Employee_ID"].Value.ToString();
 
-                    
                     if (row.Cells["profile_image"].Value != DBNull.Value)
                     {
                         byte[] imageData = (byte[])row.Cells["profile_image"].Value;
                         using (MemoryStream ms = new MemoryStream(imageData))
                         {
-                            addEmployee_pictureBox.Image = Image.FromStream(ms);
+                            try
+                            {
+                                addEmployee_pictureBox.Image = Image.FromStream(ms);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Failed to load image from database: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                addEmployee_pictureBox.Image = null;
+                            }
                         }
                     }
                     else
                     {
-                       
                         addEmployee_pictureBox.Image = Image.FromFile(@"C:\Users\xgael\source\repos\midtermCrudExamSanJuan\midtermCrudExamSanJuan\Resources\defaultprofile\default.png");
                     }
 
-                    
                     addEmployee_updateBtn.Enabled = true;
                     addEmployee_updateBtn.BackColor = Color.FromArgb(240, 89, 65);
-
-                   
                     addEmployee_deleteBtn.Enabled = true;
                     addEmployee_deleteBtn.BackColor = Color.FromArgb(240, 89, 65);
-
-                
                     isRowSelected = true;
                 }
             }
             else
             {
-
                 addEmployee_updateBtn.Enabled = false;
                 addEmployee_updateBtn.BackColor = System.Drawing.Color.Gray;
                 addEmployee_deleteBtn.Enabled = false;
                 addEmployee_deleteBtn.BackColor = System.Drawing.Color.Gray;
-
                 isRowSelected = false;
             }
         }
@@ -236,23 +268,30 @@ namespace midtermCrudExamSanJuan
             DialogResult result = MessageBox.Show("Are you sure you want to update this employee?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No)
             {
-                return; 
+                return;
             }
 
             try
             {
-
                 mySqlConnection.Open();
                 string query = "UPDATE employee SET First_Name = @first_name, Last_Name = @last_name, Gender = @gender, Email = @email, Position = @position, Status = @status";
                 byte[] imageBytes = null;
                 if (addEmployee_pictureBox.Image != null)
                 {
-                    using (MemoryStream ms = new MemoryStream())
+                    try
                     {
-                        addEmployee_pictureBox.Image.Save(ms, addEmployee_pictureBox.Image.RawFormat);
-                        imageBytes = ms.ToArray();
+                        using (MemoryStream ms = new MemoryStream())
+                        {
+                            // Use PNG format to avoid GDI+ issues with certain image formats
+                            addEmployee_pictureBox.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                            imageBytes = ms.ToArray();
+                        }
                     }
-
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to process image for update: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
                     query += ", profile_image = @image";
                 }
                 query += " WHERE Employee_ID = @employee_id";
@@ -302,7 +341,7 @@ namespace midtermCrudExamSanJuan
             DialogResult result = MessageBox.Show("Are you sure you want to delete this employee?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No)
             {
-                return; 
+                return;
             }
 
             try
@@ -347,6 +386,11 @@ namespace midtermCrudExamSanJuan
             status_combobox.SelectedIndex = -1;
 
             addEmployee_pictureBox.Image = null;
+        }
+
+        private void addEmployee_pictureBox_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

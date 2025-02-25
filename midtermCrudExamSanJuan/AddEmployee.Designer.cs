@@ -295,6 +295,7 @@
             this.addEmployee_pictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.addEmployee_pictureBox.TabIndex = 8;
             this.addEmployee_pictureBox.TabStop = false;
+            this.addEmployee_pictureBox.Click += new System.EventHandler(this.addEmployee_pictureBox_Click);
             // 
             // email_textbox
             // 
